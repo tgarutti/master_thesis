@@ -4,6 +4,7 @@
 import pickle
 import pandas as pd
 import numpy as np
+import math
 
 ## Pickle: save and load file
 def saveFile(file, filename):
@@ -46,15 +47,12 @@ def readPrices(filename):
 
 #def loadDataset():
     
-def constructTestDataset():
-    text10K2018 = loadFile("10Ks_2018TEXT.pckl")
-    text10Q2018 = loadFile("10Qs_2018TEXT.pckl")
-    prices = loadFile("prices2018.pckl")
+def joinPricesText(f1, f2):
+    text10X = loadFile(f1)
+    prices = loadFile(f2)
+    prices = prices.to_numpy()
     CIKs = np.unique(prices[:,2])
-    text10X = text10K2018 + text10Q2018
     text10Xfinal = []
-    cik_count = 0
-    date_count = 0
     for item in text10X:
         date = item[0]
         date2 = incrementQuarter(date, 1)
@@ -64,13 +62,13 @@ def constructTestDataset():
             if date in p_temp[:,0] and date2 in p_temp[:,0]:
                 p1 = p_temp[p_temp[:,0] == date][0,1]
                 p2 = p_temp[p_temp[:,0] == date2][0,1]
-                p_change = (p2-p1)/p1
-                item.insert(-1,p_change)
-                text10Xfinal.append(item)
-            else:
-                date_count+=1
-        else:
-            cik_count+=1
+                if p1!=0:
+                    p_change = (p2-p1)/p1
+                    y = np.array([1,0])
+                    y = np.array([0,1]) if p_change < 0 else y
+                    item.insert(-1, y)
+                    item.insert(-1, p_change)
+                    text10Xfinal.append(item)
     return text10Xfinal
 
 def loadTestDataset():
