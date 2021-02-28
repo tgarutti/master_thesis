@@ -52,47 +52,69 @@ def dataToLists():
     f2 = drive+"/Data/"+"CIKs.pckl"
     fd.saveFile(CIKs, f2)
                     
-
-def readPrices(filename, CIKs):
-    prices = pd.read_csv(filename)
-    prices = prices[['datadate','prccm','cik']]
+def readPrices(fn1, fn2, fn3, CIKs):
+    p1 = pd.read_csv(fn1, dtype={"datadate": int, "prccm": float, "cik": int})
+    p1 = p1[['datadate','prccm','cik']]
+    p2 = pd.read_csv(fn2, dtype={"datadate": int, "prccm": float, "cik": int})
+    p2 = p2[['datadate','prccm','cik']]
+    p3 = pd.read_csv(fn3, dtype={"datadate": int, "prccd": float, "cik": int})
+    p3 = p3[['datadate','prccd','cik']]
+    p3.columns = ['datadate','prccm','cik']
+    prices = pd.concat([p1,p2,p3])
+    del p1,p2,p3 
     prices_final = []
+    c = 0
+    progress = 0.1
     for cik in CIKs:
+        c+=1 
+        if c/len(CIKs)>=progress:
+            per = int(progress*100)
+            print(str(per) + "%")
+            progress+=0.1
+        p_cik = prices.loc[prices['cik'] == int(cik)]
         for year in range(2000,2019):
-            p = prices.loc[prices['cik'] == int(cik)]
             low = (year-1)*10000+1001
             high = year*10000+931
-            p = p.loc[(p['datadate'] >= low) & (p['datadate'] <= high)]
+            p = p_cik.loc[(p_cik['datadate'] >= low) & (p_cik['datadate'] <= high)]
             p = p[p['prccm'].notna()]
             q1 = p.loc[(p['datadate']//100%100>=10) & (p['datadate']//100%100<=12)]
             q2 = p.loc[(p['datadate']//100%100>=1) & (p['datadate']//100%100<=3)]
             q3 = p.loc[(p['datadate']//100%100>=4) & (p['datadate']//100%100<=6)]
             q4 = p.loc[(p['datadate']//100%100>=7) & (p['datadate']//100%100<=9)]
             qrt = [q1,q2,q3,q4]
-            i = 1
+            i = 0
             for q in qrt:
+                i+=1
                 a = q.empty
                 if q.empty == False:
-                    q = q.loc[q['datadate'].idxmax()]
-                    date = str(int(q['datadate']//10000))+" Q"+str(i)
+                    q = q.sort_values('datadate').iloc[-1]
+                    date = str(int(q['datadate'])//10000)+" Q"+str(i)
                     d={'date':date,'price':q['prccm'],'cik':cik}
                     prices_final.append(d)
-                i+=1
+                
     return pd.DataFrame(prices_final)
 
 def constructDataset():
     for year in range(2000,2019):
+        print(year)
         f1 = loc+str(year)+"10X.pckl"
         f2 = "/Volumes/LaCie/Data/prices.pckl"
         final10X = fd.joinPricesText(f1,f2)
         f3 = loc+str(year)+"10X_final.pckl"
         fd.saveFile(final10X, f3)
         del final10X
+        
+def constructDictionary():
+    dictionary = {}
+    CIKs = []
+    for year in range(2000,2019):
+        print(year)
+        filename = loc+str(year)+"10X_final.pckl"
+        dictionary, cik = f10X.returnDictionary(dictionary, filename)
+        CIKs.append(cik)
+    return dictionary, CIKs
 
-CIKs = fd.loadFile(loc+"CIKs.pckl")
-prices = readPrices(loc+"prices.csv", CIKs)
-#fd.saveFile(prices, "/Volumes/LaCie/Data/prices.pckl")
-constructDataset()
+dictionary, CIKs = constructDictionary()
                 
     # prices_final = prices[~(prices['date']//100%100%3!=0)]
     # for i in range(0,len(prices)):

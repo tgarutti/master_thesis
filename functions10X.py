@@ -7,6 +7,8 @@ import datetime
 import string
 import collections
 import random as rd
+import functionsData as fd
+
 
 
 ##############################################################################
@@ -196,8 +198,11 @@ def countNumbers(inputString):
     return n
 
 # constructDictionary - create dictionary
-def constructDictionary(dictionary, yearly_list):
+def returnDictionary(dictionary, filename):
+    yearly_list = fd.loadFile(filename)
+    CIKs =[]
     for k in yearly_list:
+        CIKs.append(k[1])
         text = cleanText(k[-1])
         count = collections.Counter(text)
         for key, value in count.items():
@@ -205,6 +210,6 @@ def constructDictionary(dictionary, yearly_list):
                 dictionary[key] = [rd.randint(0, 25)/100, rd.randint(-25, 0)/100, value]
             else:
                 dictionary[key] = [dictionary[key][0],dictionary[key][1],dictionary[key][2]+value]
-    return dictionary
+    return dictionary, CIKs
 ##############################################################################
 ##############################################################################
