@@ -72,9 +72,12 @@ def joinPricesText(f1, f2):
     return text10Xfinal
 
 def loadTestDataset():
-    dataset = loadFile("dataset2018.pckl")
-    dictionary = loadFile("dict2018.pckl")
-    return dataset, dictionary
+    loc = "/Users/user/Documents/Erasmus/QFMaster/Master Thesis/data_test"
+    dataset = loadFile(loc + "201810X_final.pckl")
+    dictionary = loadFile(loc + "dictionary.pckl")
+    CIKs = loadFile(loc + "CIKs_final.pckl")
+    prices = loadFile(loc + "prices.pckl")
+    return dataset, dictionary, CIKs, prices
 
 def incrementQuarter(date, increment):
     [yr, qrt] = date.split(" Q")

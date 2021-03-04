@@ -197,6 +197,12 @@ def countNumbers(inputString):
             n = n+1
     return n
 
+def checkDictionary(dictionary):
+    delKeys = [key for key in dictionary.keys() if dictionary[key][2] < 20]
+    for key in delKeys: 
+        del dictionary[key]
+    return dictionary
+
 # constructDictionary - create dictionary
 def returnDictionary(dictionary, filename):
     yearly_list = fd.loadFile(filename)

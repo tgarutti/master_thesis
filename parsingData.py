@@ -111,23 +111,8 @@ def constructDictionary():
         print(year)
         filename = loc+str(year)+"10X_final.pckl"
         dictionary, cik = f10X.returnDictionary(dictionary, filename)
-        CIKs.append(cik)
+        CIKs+=cik
+    dictionary = f10X.checkDictionary(dictionary)
     return dictionary, CIKs
 
 dictionary, CIKs = constructDictionary()
-                
-    # prices_final = prices[~(prices['date']//100%100%3!=0)]
-    # for i in range(0,len(prices)):
-    #     date = prices['date'].iloc[i]
-    #     yr = date//10000
-    #     cik = str(prices['cik'].iloc[i])
-    #     prices['cik'].iloc[i] = "0"*(10-len(cik)) + cik
-    #     if date//100%100//3==4:
-    #         prices['date'].iloc[i] = str(yr) + " Q1"
-    #     elif date//100%100//3==1:
-    #         prices['date'].iloc[i] = str(yr) + " Q2"
-    #     elif date//100%100//3==2:
-    #         prices['date'].iloc[i] = str(yr) + " Q3"
-    #     elif date//100%100//3==3:
-    #         prices['date'].iloc[i] = str(yr) + " Q4"
-
