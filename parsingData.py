@@ -1,5 +1,5 @@
 ##############################################################################
-##### Get list of 10X files based on CIK and path length (For 2018 only) #####
+##### Get list of 10X files based on CIK and path length #####################
 ##############################################################################
 import os
 import numpy as np
@@ -7,9 +7,10 @@ import pandas as pd
 import functions10X as f10X
 import functionsData as fd
 import math
+from collections import defaultdict
 loc = "/Volumes/LaCie/Data/"
 
-def getList10X(folder_name):
+def getList10X(folder_name, year):
     CIKs = []
     list10K = []
     list10Q = []
@@ -22,7 +23,7 @@ def getList10X(folder_name):
                 
                 # Read header: get company name, CIK and file type
                 header = f10X.readHeader(text).tolist()
-                date = "2018" + " " + quarter[0] + quarter[-1]
+                date = year + " " + quarter[0] + quarter[-1]
                 if f10X.checkDates(text, 360):
                     if len(f10X.checkItems(text)) > 10:
                         CIKs.append(header[1])
@@ -42,7 +43,7 @@ def dataToLists():
             for year in reversed(os.listdir(drive+"/"+folder)):
                 if year[0].isdigit():
                     print(year)
-                    list10X, CIKtemp = getList10X(drive+"/"+folder+"/"+year)
+                    list10X, CIKtemp = getList10X(drive+"/"+folder+"/"+year, year)
                     f1 = drive+"/Data/"+year+"10X.pckl"
                     fd.saveFile(list10X, f1)
                     CIKs = CIKs + CIKtemp
@@ -100,19 +101,22 @@ def constructDataset():
         f1 = loc+str(year)+"10X.pckl"
         f2 = "/Volumes/LaCie/Data/prices.pckl"
         final10X = fd.joinPricesText(f1,f2)
-        f3 = loc+str(year)+"10X_final.pckl"
+        f3 = loc+str(year)+"10X_final2.pckl"
         fd.saveFile(final10X, f3)
         del final10X
         
 def constructDictionary():
-    dictionary = {}
+    dictionary = defaultdict(dict)
     CIKs = []
-    for year in range(2000,2019):
+    for year in range(2000,2016):
         print(year)
-        filename = loc+str(year)+"10X_final.pckl"
+        filename = loc+str(year)+"10X_final2.pckl"
         dictionary, cik = f10X.returnDictionary(dictionary, filename)
         CIKs+=cik
     dictionary = f10X.checkDictionary(dictionary)
     return dictionary, CIKs
 
+constructDataset()
 dictionary, CIKs = constructDictionary()
+fd.saveFile(dictionary, loc+"dictionary_2015_final.pckl")
+

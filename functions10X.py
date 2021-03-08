@@ -8,6 +8,7 @@ import string
 import collections
 import random as rd
 import functionsData as fd
+from collections import defaultdict
 
 
 
@@ -198,9 +199,11 @@ def countNumbers(inputString):
     return n
 
 def checkDictionary(dictionary):
-    delKeys = [key for key in dictionary.keys() if dictionary[key][2] < 20]
+    delKeys = [key for key in dictionary.keys() if dictionary[key]['freq'] < 20]
     for key in delKeys: 
         del dictionary[key]
+    for key in dictionary.keys():
+        del dictionary[key]['freq']
     return dictionary
 
 # constructDictionary - create dictionary
@@ -213,9 +216,15 @@ def returnDictionary(dictionary, filename):
         count = collections.Counter(text)
         for key, value in count.items():
             if key not in dictionary:
-                dictionary[key] = [rd.randint(0, 25)/100, rd.randint(-25, 0)/100, value]
+                dictionary[key]['pos'] = rd.randint(10, 50)/100
+                dictionary[key]['neg'] = rd.randint(10, 50)/100
+                dictionary[key]['mp'] = 0
+                dictionary[key]['vp'] = 0
+                dictionary[key]['mn'] = 0
+                dictionary[key]['vn'] = 0
+                dictionary[key]['freq'] = value
             else:
-                dictionary[key] = [dictionary[key][0],dictionary[key][1],dictionary[key][2]+value]
+                dictionary[key]['freq'] = dictionary[key]['freq'] + value
     return dictionary, CIKs
 ##############################################################################
 ##############################################################################

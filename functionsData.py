@@ -72,9 +72,9 @@ def joinPricesText(f1, f2):
     return text10Xfinal
 
 def loadTestDataset():
-    loc = "/Users/user/Documents/Erasmus/QFMaster/Master Thesis/data_test"
-    dataset = loadFile(loc + "201810X_final.pckl")
-    dictionary = loadFile(loc + "dictionary.pckl")
+    loc = "/Users/user/Documents/Erasmus/QFMaster/Master Thesis/data_test/"
+    dataset = loadFile(loc + "200010X_final.pckl")
+    dictionary = loadFile(loc + "dictionary_2015.pckl")
     CIKs = loadFile(loc + "CIKs_final.pckl")
     prices = loadFile(loc + "prices.pckl")
     return dataset, dictionary, CIKs, prices
