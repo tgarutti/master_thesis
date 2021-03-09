@@ -6,6 +6,7 @@ import re
 import datetime
 import string
 import collections
+import nltk
 import random as rd
 import functionsData as fd
 from collections import defaultdict
@@ -199,7 +200,15 @@ def countNumbers(inputString):
     return n
 
 def checkDictionary(dictionary):
-    delKeys = [key for key in dictionary.keys() if dictionary[key]['freq'] < 20]
+    nltk.download('words')
+    words = set(nltk.corpus.words.words())
+    delKeys = [key for key in dictionary.keys() if key not in words]
+    for key in delKeys: 
+        del dictionary[key]
+    return dictionary
+
+def checkFrequency(dictionary):
+    delKeys = [key for key in dictionary.keys() if dictionary[key]['freq'] < 200]
     for key in delKeys: 
         del dictionary[key]
     for key in dictionary.keys():

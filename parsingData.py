@@ -113,10 +113,11 @@ def constructDictionary():
         filename = loc+str(year)+"10X_final2.pckl"
         dictionary, cik = f10X.returnDictionary(dictionary, filename)
         CIKs+=cik
+    dictionary = f10X.checkFrequency(dictionary)
     dictionary = f10X.checkDictionary(dictionary)
     return dictionary, CIKs
-
-constructDataset()
+#dataToList()
+#constructDataset()
 dictionary, CIKs = constructDictionary()
 fd.saveFile(dictionary, loc+"dictionary_2015_final.pckl")
 
