@@ -57,3 +57,9 @@ def adam(grad, m, v):
     step = np.multiply((rate/(np.sqrt(v_hat)+eps)),m_hat)
     
     return step, m_new, v_new
+
+def getSortedScores(dictionary):
+    df = pd.DataFrame(dictionary)
+    dfScore = df.loc['pos']-df.loc['neg']
+    dfScore = dfScore.sort_values(ascending=False)
+    return dfScore

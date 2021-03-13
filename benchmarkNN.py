@@ -23,6 +23,19 @@ def update(batch_dictDF, W, stepP, stepN, stepW, m, v):
     #W = W - np.diag(stepW)
     return batch_dictDF, W
 
+def gradientW(d1, p1p2, X, w0, w1, batch_len):
+    der0 = np.multiply(np.array([np.multiply(X[:,0],p1p2),np.multiply((-X[:,0]),p1p2)]),d1)
+    der1 = np.multiply(np.array([np.multiply((-X[:,1]),p1p2),np.multiply(X[:,1],p1p2)]),d1)
+    if w0 > 0:
+        gradw0 = -der0.sum(axis=(0,1))/batch_len
+    else:
+        gradw0 = -der0.sum(axis=(0,1))/batch_len - 2*w0
+    if w1 > 0:
+        gradw1 = -der1.sum(axis=(0,1))/batch_len
+    else:
+        gradw1 = -der1.sum(axis=(0,1))/batch_len - 2*w1   
+    return gradw0, gradw1
+
 ##### DIVIDE BY GRADIENTS BY LENGTH OF BATCH
 def calculateGradients(y, y_hat, W, X, N):
     batch_len=len(y[0,:])
@@ -39,10 +52,8 @@ def calculateGradients(y, y_hat, W, X, N):
     gradN = -derN.sum(axis=(0))    
     
     # Gradients for W
-    der0 = np.multiply(np.array([np.multiply(X[:,0],p1p2),np.multiply((-X[:,0]),p1p2)]),d1)
-    der1 = np.multiply(np.array([np.multiply((-X[:,1]),p1p2),np.multiply(X[:,1],p1p2)]),d1)
-    gradw0 = -der0.sum(axis=(0,1))/batch_len
-    gradw1 = -der1.sum(axis=(0,1))/batch_len
+    gradw0 = gradw1 = 0.01
+    #gradw0, gradw1 = gradientW(d1, p1p2, X, w0, w1, batch_len)
     
     grad = np.array([gradP, gradN, gradw0, gradw1])
     
@@ -67,8 +78,8 @@ def forwardPropagation(batch, batch_dict, batch_mat, W):
     for item in batch:
         i+=1
         text = item[-1]
-        price_boolean = item[3]
-        price = item[4]
+        price_boolean = item[4]
+        price = item[5]
         y.append(price_boolean)
         text = f10X.cleanText(text)
         text = list(set(text))        
@@ -151,14 +162,16 @@ def runNeuralNetwork(dataset, W, m_coef, v_coef):
             dictionary.update(d)
             end2 = time.time()
     return loss, W
-dictionary = fd.loadFile(drive+'dictionary_2015_final.pckl')
+dictionary = fd.loadFile(drive+'dictionary_final.pckl')
 W, m_coef, v_coef = initializeCoefficients()
 batch_size, epochs = setHyperparameters()
 loss = []
 dictionary = fNN.initializeX(dictionary)
-for year in range(2000,2004):
+for year in range(2000,2006):
     start = time.time()
-    dataset = fd.loadFile(drive+str(year)+'10X_final2.pckl')
+    dataset = fd.loadFile(drive+str(year)+'10X_final.pckl')
+    rd.shuffle(dataset)
     loss, W = runNeuralNetwork(dataset, W, m_coef, v_coef)
     end = time.time()
     print(end-start)
+fd.saveFile(dictionary, drive+'dictionary_benchNN.pckl')

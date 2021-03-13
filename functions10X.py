@@ -119,8 +119,8 @@ def itemize10X(filename):
             t = partitionText(rem, item1, item2)
             rem = item2 + partitionText(rem, item2, '')
         if wordCount(t) > 0:
-            num = [int(s) for s in cleanText(item1) if s.isdigit()]
-            strItem = "ITEM " + str(num) + ".\n"
+            num = [s for s in item1 if s.isdigit()]
+            strItem = "ITEM " + ''.join(num) + ".\n"
             
             if num in numVec:
                 k = numVec.index(num)
@@ -128,7 +128,7 @@ def itemize10X(filename):
                 s_temp = s_temp + "\n\n" + t
                 itemSep[k] = s_temp
             else:
-                numVec.append([int(s) for s in cleanText(item1) if s.isdigit()])
+                numVec.append(''.join(num))
                 itemSep.append(strItem + t)    
     for j in itemSep:
         itemizedText = itemizedText + "\n\n" + j
