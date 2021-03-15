@@ -33,6 +33,12 @@ def softmax(A):
     e = np.exp(A)
     return e / np.sum(e, axis=0, keepdims=True)
 
+def tfidf(A):
+    rows = 1+np.log(A.sum(1))
+    A = 1+np.log(A)
+    A[A==-np.inf] = 0
+    return A.T/rows
+
 def nextBatch(dataset, index, batch_size, stop):
     if len(dataset) -index - batch_size < batch_size:
         batch = dataset[index:]

@@ -1,5 +1,5 @@
 ##############################################################################
-##### Benchmark Neural Network (Vo et al.) ###################################
+##### Classification Neural Network ##########################################
 ##############################################################################
 import os
 import numpy as np
@@ -55,7 +55,7 @@ def calculateGradients(y, y_hat, W, X, N):
     gradw0 = gradw1 = 0.01
     #gradw0, gradw1 = gradientW(d1, p1p2, X, w0, w1, batch_len)
     
-    grad = [gradP, gradN, gradw0, gradw1]
+    grad = np.array([gradP, gradN, gradw0, gradw1])
     
     return grad
 
@@ -114,6 +114,7 @@ def batchDictionary(batch):
     batch_dict = {}
     i=1
     for doc in batch:
+        rowStr = "doc"+str(i)
         docList = list(set(f10X.cleanText(doc[-1])).intersection(inter))
         d = {}
         d = {k: dictionary[k] for k in docList}
@@ -147,11 +148,8 @@ def runNeuralNetwork(dataset, W, m_coef, v_coef):
         while stop == False:
             batch, i, stop = fNN.nextBatch(dataset, i, batch_size, stop)
             batch_dict, batch_mat = batchDictionary(batch)
-            #euclid = fNN.euclideanNorm(batch_mat)
-            #batch_mat1 = batch_mat/euclid
-            batch_mat1 = fNN.tfidf(batch_mat)
-            batch_mat1 = batch_mat1.T
-            
+            euclid = fNN.euclideanNorm(batch_mat)
+            batch_mat1 = batch_mat/euclid
             N = 0
             #N = (batch_mat.sum(1)).mean()
             #batch_mat1 = batch_mat/N
@@ -166,8 +164,6 @@ def runNeuralNetwork(dataset, W, m_coef, v_coef):
             end2 = time.time()
     return loss, W
 dictionary = fd.loadFile(drive+'dictionary_final.pckl')
-#dictionary = fd.loadFile(drive+'dictionary_benchNN.pckl')
-
 W, m_coef, v_coef = initializeCoefficients()
 batch_size, epochs = setHyperparameters()
 loss = []
