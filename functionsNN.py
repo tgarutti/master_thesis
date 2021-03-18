@@ -2,6 +2,7 @@
 ##### Functions for Neural Network ###########################################
 ##############################################################################
 import numpy as np
+import re
 import pandas as pd
 import functions10X as f10X
 import functionsData as fd
@@ -29,6 +30,10 @@ def crossEntropyLoss(y, y_hat):
     loss = np.multiply(y, np.log(y_hat))
     return -np.sum(loss)/len(y[0,:])
 
+def MSELoss(y, y_hat):
+    loss = np.square(y-y_hat)
+    return np.sum(loss)/len(y[0,:])
+
 def softmax(A):
     e = np.exp(A)
     return e / np.sum(e, axis=0, keepdims=True)
@@ -37,7 +42,8 @@ def tfidf(A):
     rows = 1+np.log(A.sum(1))
     A = 1+np.log(A)
     A[A==-np.inf] = 0
-    return A.T/rows
+    A = A.T/rows
+    return A.T
 
 def nextBatch(dataset, index, batch_size, stop):
     if len(dataset) -index - batch_size < batch_size:
@@ -69,3 +75,20 @@ def getSortedScores(dictionary):
     dfScore = df.loc['pos']-df.loc['neg']
     dfScore = dfScore.sort_values(ascending=False)
     return dfScore
+
+def getItems(text):
+    itemSearch = re.findall("(ITEM\s)([0-9]+)(\.\n)(.*?)(?:(?!ITEM).)*", text, re.DOTALL)
+    itemList = []
+    for i in range(len(itemSearch)):
+        item1 = itemSearch[i]
+        itemStr1 = ''.join(item1)
+        n = item1[1]
+        if i==len(itemSearch)-1:
+            result = f10X.partitionText(text, itemStr1, '')
+        else:
+            item2 = itemSearch[i+1]
+            itemStr2 = ''.join(item2)
+            result = f10X.partitionText(text, itemStr1, itemStr2)
+        itemList.append([n,result])
+    return itemList
+        

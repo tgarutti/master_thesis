@@ -1,5 +1,5 @@
 ##############################################################################
-##### Benchmark Neural Network (Vo et al.) ###################################
+##### Regression Neural Network ##########################################
 ##############################################################################
 import os
 import numpy as np
@@ -11,6 +11,7 @@ import random as rd
 import collections
 import time
 drive = '/Volumes/LaCie/Data/'
+test_loc = '/Users/user/Documents/Erasmus/QFMaster/Master Thesis/data_test/'
 
 
 def update(batch_dictDF, W, stepP, stepN, stepW, m, v):
@@ -37,42 +38,46 @@ def gradientW(d1, p1p2, X, w0, w1, batch_len):
     return gradw0, gradw1
 
 ##### DIVIDE BY GRADIENTS BY LENGTH OF BATCH
-def calculateGradients(y, y_hat, W, X, N):
+def calculateGradients(y, y_hat, coefficients, X, N):
     batch_len=len(y[0,:])
-    w0 = W[0,0]
-    w1 = W[1,1]
+    betas = coefficients[0]
+    D = coefficients[1]
+    W = coefficients[2]
     sumX = X.sum(axis=0)
     d1 = np.divide(y,y_hat)
-    p1p2 = np.multiply(y_hat[0,:],y_hat[1,:])
+    gamma = np.square(2/(np.exp(D.dot(sumX))+np.exp(-D.dot(sumX))))
     
     # Gradients of word values
-    derP = np.multiply(np.array([w0*p1p2,(-w0)*p1p2]),d1)
-    derN = np.multiply(np.array([(-w1)*p1p2,w1*p1p2]),d1)
+    pos = W[0]*gamma[0]*D[0,0]
+    neg = (-W[1])*gamma[1]*D[1,1]
+    derP = np.multiply(pos,d1)
+    derN = np.multiply(neg,d1)
     gradP = -derP.sum(axis=(0))
     gradN = -derN.sum(axis=(0))    
     
-    # Gradients for W
-    gradw0 = gradw1 = 0.01
+    # Gradients for Coef
     #gradw0, gradw1 = gradientW(d1, p1p2, X, w0, w1, batch_len)
     
-    grad = [gradP, gradN, gradw0, gradw1]
+    grad = [gradP, gradN]
     
     return grad
 
-def backPropagation(batch_dictDF, batch_mat, y, y_hat, W, X, m, v, N):
-    grad = calculateGradients(y, y_hat, W, X, N)
+def backPropagation(batch_dictDF, batch_mat, y, y_hat, coefficients, X, m, v, N):
+    grad = calculateGradients(y, y_hat, coefficients, X, N)
     gradP = (grad[0]*batch_mat.T).sum(1)/len(y[0,:])
     gradN = (grad[1]*batch_mat.T).sum(1)/len(y[0,:])
-    gradW = np.array([grad[2], grad[3]])
     stepP, mp, vp = fNN.adam(gradP, m[0], v[0])
     stepN, mn, vn = fNN.adam(gradN, m[1], v[1])
-    stepW, mw, vw = fNN.adam(gradW, m[2], v[2])
-    m = [mp,mn,mw]
-    v = [vp,vn,vw]
-    batch_dictDF, W = update(batch_dictDF, W, stepP, stepN, stepW, m, v)
-    return batch_dictDF, W, m[2], v[2]
+    m=[mp,mn,0]
+    v=[vp,vn,0]
+    stepCoef = 0
+    batch_dictDF, W = update(batch_dictDF, coefficients, stepP, stepN, stepCoef, m, v)
+    return batch_dictDF, coefficients, m[2], v[2]
 
-def forwardPropagation(batch, batch_dict, batch_mat, W):
+def forwardPropagation(batch, batch_dict, batch_mat, coefficients):
+    betas = coefficients[0]
+    D = coefficients[1]
+    W = coefficients[2]
     y = []
     y_hat = []
     X = []
@@ -82,7 +87,7 @@ def forwardPropagation(batch, batch_dict, batch_mat, W):
         text = item[-1]
         price_boolean = item[4]
         price = item[5]
-        y.append(price_boolean)
+        y.append(price)
         text = f10X.cleanText(text)
         text = list(set(text))        
         # From text to values
@@ -95,11 +100,12 @@ def forwardPropagation(batch, batch_dict, batch_mat, W):
         sumValues = (values.sum(axis=0))
         X.append(sumValues)
         
-        # First linear layer - results in 2x1 vector
-        linlayer = W.dot(sumValues)
+        # NN layers
+        linlayer1 = D.dot(sumValues)
+        e2a = np.exp(2*linlayer1)
+        tanh = (e2a-1)/(e2a+1)
         
-        # Softmax
-        y_hat.append(fNN.softmax(linlayer))
+        y_hat.append(W[0]*tanh[0] - W[1]*tanh[1])
     y = np.column_stack(y)
     y_hat = np.column_stack(y_hat)
     X = np.row_stack(X)
@@ -116,6 +122,7 @@ def batchDictionary(batch):
     batch_dict = {}
     i=1
     for doc in batch:
+        rowStr = "doc"+str(i)
         docList = list(set(f10X.cleanText(doc[-1])).intersection(inter))
         d = {}
         d = {k: dictionary[k] for k in docList}
@@ -127,16 +134,53 @@ def batchDictionary(batch):
         i+=1
     return batch_dict, batch_mat
 
+def itemizedBatchDictionary(batch, betas):
+    fullTexts = ''
+    fullTexts = ''.join([fullTexts + doc[-1] for doc in batch])
+    intersect = list(set(f10X.cleanText(fullTexts)).intersection(dictionary.keys()))
+    colNames = intersect
+    rowNames = ["doc"+str(i+1) for i in range(len(batch))]
+    zeros = np.zeros((len(rowNames),len(colNames)))
+    batch_mat = pd.DataFrame(zeros, index=rowNames, columns=colNames)
+    betas_mat = pd.DataFrame(zeros, index=rowNames, columns=colNames)
+    Xs_mat = pd.DataFrame(zeros, index=rowNames, columns=colNames)
+    XtimesBeta = pd.DataFrame(zeros, index=rowNames, columns=colNames)
+    batch_dict = {}
+    i=1
+    for doc in batch:
+        rowStr = "doc"+str(i)
+        docList = list(set(f10X.cleanText(doc[-1])).intersection(intersect))
+        d = {}
+        d = {k: dictionary[k] for k in docList}
+        freq = collections.Counter(f10X.cleanText(doc[-1]))
+        items = fNN.getItems(doc[-1])
+        for item in items:
+            itemList = list(set(f10X.cleanText(item[-1])).intersection(docList))
+        for k in docList:
+            rowStr = "doc"+str(i)
+            batch_mat.loc[rowStr,k] = freq[k]
+        batch_dict.update(d)
+        i+=1
+    return batch_dict, batch_mat
+
 def initializeCoefficients():
-    w1 = 0.1
-    w2 = 0.1
-    W = np.array([[w1,0],
-                  [0,w2]])
-    W = np.array([[w1,0],
-                  [0,w2]])
-    m = np.array([0,0])
-    v = np.array([0,0])
-    return W, m, v
+    W = np.array([1,1])
+    m_w = np.array([0,0])
+    v_w = np.array([0,0])
+    
+    D = np.array([[0.1,0],
+                  [0,0.1]])
+    m_d = np.array([0,0])
+    v_d = np.array([0,0])
+    
+    B = 0.1*np.ones((1,15))
+    m_b = np.zeros((1,15))
+    v_b = np.zeros((1,15))
+    
+    coefficients = [B,D,W]
+    Ms = [m_b, m_d, m_w]
+    Vs = [v_b, v_d, v_w]
+    return coefficients, Ms, Vs
     
 def setHyperparameters():
     batch_size = 40
@@ -144,7 +188,7 @@ def setHyperparameters():
     return batch_size, epochs
 
 
-def runNeuralNetwork(dataset, W, m_coef, v_coef):
+def runNeuralNetwork(dataset, coefficients, Ms, Vs):
 #Initialize Neural Network
     for j in range(epochs):
         i, stop = fNN.newEpoch()
@@ -153,33 +197,32 @@ def runNeuralNetwork(dataset, W, m_coef, v_coef):
             batch_dict, batch_mat = batchDictionary(batch)
             #euclid = fNN.euclideanNorm(batch_mat)
             #batch_mat1 = batch_mat/euclid
-            batch_mat1 = fNN.tfidf(batch_mat)
-            
             N = 0
             #N = (batch_mat.sum(1)).mean()
             #batch_mat1 = batch_mat/N
+            batch_mat1 = fNN.tfidf(batch_mat)
             batch_dictDF = pd.DataFrame(batch_dict)
-            m = [batch_dictDF.loc['mp'],batch_dictDF.loc['mn'], m_coef]
-            v = [batch_dictDF.loc['vp'],batch_dictDF.loc['vn'], v_coef]
-            y, y_hat, X = forwardPropagation(batch, batch_dict, batch_mat1, W)
-            loss.append(fNN.crossEntropyLoss(y, y_hat))
-            batch_dictDF, W, m_coef, v_coef = backPropagation(batch_dictDF, batch_mat, y, y_hat, W, X, m, v, N)
+            m = [batch_dictDF.loc['mp'],batch_dictDF.loc['mn'], Ms]
+            v = [batch_dictDF.loc['vp'],batch_dictDF.loc['vn'], Vs]
+            y, y_hat, X = forwardPropagation(batch, batch_dict, batch_mat1, coefficients)
+            loss.append(fNN.MSELoss(y, y_hat))
+            batch_dictDF, coefficients, Ms, Vs = backPropagation(batch_dictDF, batch_mat, y, y_hat, coefficients, X, m, v, N)
             d = batch_dictDF.to_dict()
             dictionary.update(d)
             end2 = time.time()
-    return loss, W
-#dictionary = fd.loadFile(drive+'dictionary_final.pckl')
-dictionary = fd.loadFile(drive+'dictionary_benchNN.pckl')
+    return loss, coefficients
+dictionary = fd.loadFile(drive+'dictionary_final.pckl')
+#dictionary = fd.loadFile(drive+'dictionary_benchNN.pckl')
 
-W, m_coef, v_coef = initializeCoefficients()
+coefficients, Ms, Vs = initializeCoefficients()
 batch_size, epochs = setHyperparameters()
 loss = []
 dictionary = fNN.initializeX(dictionary)
-for year in range(2006,2011):
+for year in range(2000,2003):
     start = time.time()
     dataset = fd.loadFile(drive+str(year)+'10X_final.pckl')
     rd.shuffle(dataset)
-    loss, W = runNeuralNetwork(dataset, W, m_coef, v_coef)
+    loss, coefficients = runNeuralNetwork(dataset, coefficients, Ms, Vs)
     end = time.time()
     print(end-start)
-fd.saveFile(dictionary, drive+'dictionary_benchNN.pckl')
+fd.saveFile(dictionary, drive+'dictionary_regressionNN.pckl')
