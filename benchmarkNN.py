@@ -175,7 +175,7 @@ W, m_coef, v_coef = initializeCoefficients()
 batch_size, epochs = setHyperparameters()
 loss = []
 dictionary = fNN.initializeX(dictionary)
-for year in range(2006,2011):
+for year in range(2011,2015):
     start = time.time()
     dataset = fd.loadFile(drive+str(year)+'10X_final.pckl')
     rd.shuffle(dataset)

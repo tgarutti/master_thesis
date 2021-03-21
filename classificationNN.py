@@ -222,7 +222,7 @@ def runNeuralNetwork(dataset, coefficients, Ms, Vs):
             d = batch_dictDF.to_dict()
             dictionary.update(d)
             end2 = time.time()
-    return loss, W
+    return loss, coefficients
 dictionary = fd.loadFile(drive+'dictionary_final.pckl')
 #dictionary = fd.loadFile(drive+'dictionary_benchNN.pckl')
 
@@ -230,11 +230,11 @@ coefficients, Ms, Vs = initializeCoefficients()
 batch_size, epochs = setHyperparameters()
 loss = []
 dictionary = fNN.initializeX(dictionary)
-for year in range(2000,2003):
+for year in range(2000,2006):
     start = time.time()
     dataset = fd.loadFile(drive+str(year)+'10X_final.pckl')
     rd.shuffle(dataset)
-    loss, W = runNeuralNetwork(dataset, coefficients, Ms, Vs)
+    loss, coefficients = runNeuralNetwork(dataset, coefficients, Ms, Vs)
     end = time.time()
     print(end-start)
 fd.saveFile(dictionary, drive+'dictionary_classificationNN.pckl')
