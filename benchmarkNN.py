@@ -168,14 +168,14 @@ def runNeuralNetwork(dataset, W, m_coef, v_coef):
             dictionary.update(d)
             end2 = time.time()
     return loss, W
-#dictionary = fd.loadFile(drive+'dictionary_final.pckl')
-dictionary = fd.loadFile(drive+'dictionary_benchNN.pckl')
+dictionary = fd.loadFile(drive+'dictionary_final.pckl')
+dictionary = fNN.initializeX(dictionary)
+#dictionary = fd.loadFile(drive+'dictionary_benchNN.pckl')
 
 W, m_coef, v_coef = initializeCoefficients()
 batch_size, epochs = setHyperparameters()
 loss = []
-dictionary = fNN.initializeX(dictionary)
-for year in range(2011,2015):
+for year in range(2000,2006):
     start = time.time()
     dataset = fd.loadFile(drive+str(year)+'10X_final.pckl')
     rd.shuffle(dataset)
