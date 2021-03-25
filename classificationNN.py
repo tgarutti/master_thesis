@@ -48,11 +48,11 @@ def calculateGradients(y, y_hat, coefficients, X, N):
     d1 = np.divide(y,y_hat)
     p1p2 = np.multiply(y_hat[0,:],y_hat[1,:])
     delta = np.array([p1p2,-p1p2])
-    gamma = np.square(2/(np.exp(D.dot(sumX))+np.exp(-D.dot(sumX))))
+    gamma = np.square(2/(np.exp(np.array([D[0,0],D[1,1]]))+np.exp(-np.array([D[0,0],D[1,1]]))))
     
     # Gradients of word values
-    pos = delta*W[0,0]*gamma[0]*D[0,0]
-    neg = delta*W[1,1]*gamma[1]*D[1,1]
+    pos = delta*W[0,0]*gamma[0]
+    neg = delta*W[1,1]*gamma[1]
     derP = np.multiply(pos,d1)
     derN = np.multiply(neg,d1)
     gradP = -derP.sum(axis=(0))
@@ -64,7 +64,9 @@ def calculateGradients(y, y_hat, coefficients, X, N):
     grad = [gradP, gradN]
     
     return grad
-
+#######
+#######
+####### FINISH THE GRADIENTS!!!!!!!!!!
 def backPropagation(batch_dictDF, batch_mat, y, y_hat, coefficients, X, m, v, N):
     grad = calculateGradients(y, y_hat, coefficients, X, N)
     gradP = (grad[0]*batch_mat.T).sum(1)/len(y[0,:])
@@ -165,7 +167,8 @@ def itemizedBatchDictionary(batch, betas):
             itemList = list(set(f10X.cleanText(item[-1])).intersection(docList))
         for k in docList:
             rowStr = "doc"+str(i)
-            batch_mat.loc[rowStr,k] = freq[k]
+            n = dictionary[k]['ndocs']
+            batch_mat.loc[rowStr,k] = (1+np.log(freq[k]))*np.log(n_docs/n)
         batch_dict.update(d)
         i+=1
     return batch_dict, batch_mat
@@ -176,8 +179,8 @@ def initializeCoefficients():
     m_w = np.array([0,0])
     v_w = np.array([0,0])
     
-    D = np.array([[0.002,0],
-                  [0,0.002]])
+    D = np.array([[0.01,0],
+                  [0,0.01]])
     m_d = np.array([0,0])
     v_d = np.array([0,0])
     
@@ -212,7 +215,7 @@ def runNeuralNetwork(dataset, coefficients, Ms, Vs):
             N = 0
             #N = (batch_mat.sum(1)).mean()
             #batch_mat1 = batch_mat/N
-            batch_mat1 = fNN.tfidf(batch_mat)
+            batch_mat1 = fNN.tfidf2(batch_mat)
             batch_dictDF = pd.DataFrame(batch_dict)
             m = [batch_dictDF.loc['mp'],batch_dictDF.loc['mn'], Ms]
             v = [batch_dictDF.loc['vp'],batch_dictDF.loc['vn'], Vs]
@@ -223,14 +226,15 @@ def runNeuralNetwork(dataset, coefficients, Ms, Vs):
             dictionary.update(d)
             end2 = time.time()
     return loss, coefficients
-dictionary = fd.loadFile(drive+'dictionary_final.pckl')
-dictionary = fNN.initializeX(dictionary)
-#dictionary = fd.loadFile(drive+'dictionary_benchNN.pckl')
+#dictionary = fd.loadFile(drive+'dictionary_filtered.pckl')
+#dictionary = fNN.initializeX(dictionary)
+dictionary = fd.loadFile(drive+'dictionary_classificationNN.pckl')
+n_docs = 276880
 
 coefficients, Ms, Vs = initializeCoefficients()
 batch_size, epochs = setHyperparameters()
 loss = []
-for year in range(2000,2006):
+for year in range(2003,2008):
     start = time.time()
     dataset = fd.loadFile(drive+str(year)+'10X_final.pckl')
     rd.shuffle(dataset)
@@ -238,3 +242,4 @@ for year in range(2000,2006):
     end = time.time()
     print(end-start)
 fd.saveFile(dictionary, drive+'dictionary_classificationNN.pckl')
+

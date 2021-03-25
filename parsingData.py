@@ -174,9 +174,9 @@ def constructDataset():
 def constructDictionary():
     dictionary = defaultdict(dict)
     CIKs = []
-    for year in range(2000,2016):
+    for year in range(2000,2014):
         print(year)
-        filename = loc+str(year)+"10X_final2.pckl"
+        filename = loc+str(year)+"10X_final.pckl"
         dictionary, cik = f10X.returnDictionary(dictionary, filename)
         CIKs+=cik
     dictionary = f10X.checkFrequency(dictionary)
@@ -194,7 +194,7 @@ def getDescriptives():
     words10QN = 0
     for year in range(2000,2019):
         print(year)
-        filename = loc+str(year)+"10X_final2.pckl"
+        filename = loc+str(year)+"10X_final.pckl"
         dataset = fd.loadFile(filename)
         for item in dataset:
             nWords = f10X.wordCount(item[5])
@@ -222,7 +222,6 @@ def getDescriptives():
 
 #dataToList()
 #constructDataset()
-#dictionary, CIKs = constructDictionary()
-#fd.saveFile(dictionary, loc+"dictionary_2015_final.pckl")
+dictionary, CIKs = constructDictionary()
+fd.saveFile(dictionary, loc+"dictionary_init.pckl")
 #descriptives = getDescriptives()
-constructDataset()

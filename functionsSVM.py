@@ -41,11 +41,7 @@ def getOmega(text, dictionary):
     text = f10X.cleanText(text)
     values = [dictionary[w] for w in text if w in dictionary]
     if len(values)==0:
-        len_text = len(text)
-        n_sentWords = 0
-        n_pos = 0
-        n_neg = 0
-        score = 0
+        return []
     else:  
         len_text = len(text)
         n_sentWords = len(values)
@@ -53,7 +49,7 @@ def getOmega(text, dictionary):
         n_pos = nPos(values)
         n_neg = nNeg(values)
         score = int(sum(values))
-    return [len_text, n_sentWords, n_pos, n_neg, score]
+        return [len_text, n_sentWords, n_pos, n_neg, score]
 
 def getScores(filename, dictionaries, dict_names):
     dataset = fd.loadFile(filename)
@@ -66,10 +62,14 @@ def getScores(filename, dictionaries, dict_names):
         else:
             y = [item[4][0],item[5],item[6][0],0]
         x1 = np.concatenate(np.row_stack(item[7])[:,0:2]).tolist()
+        n = 6-len(x1)
+        for i in range(n):
+            x1.insert(0, 0)
         for i in range(len(dictionaries)):
             d = dictionaries[i]
             d_name = dict_names[i]
             x2 = getOmega(item[-1], d)
-            x = np.array(x1+x2+y)
-            data[d_name].append(x)
+            if len(x2) > 0:
+                x = np.array(x1+x2+y)
+                data[d_name].append(x)
     return data

@@ -158,7 +158,8 @@ def itemizedBatchDictionary(batch, betas):
             itemList = list(set(f10X.cleanText(item[-1])).intersection(docList))
         for k in docList:
             rowStr = "doc"+str(i)
-            batch_mat.loc[rowStr,k] = freq[k]
+            n = dictionary[k]['ndocs']
+            batch_mat.loc[rowStr,k] = (1+np.log(freq[k]))*np.log(n_docs/n)
         batch_dict.update(d)
         i+=1
     return batch_dict, batch_mat
@@ -168,8 +169,8 @@ def initializeCoefficients():
     m_w = np.array([0,0])
     v_w = np.array([0,0])
     
-    D = np.array([[0.1,0],
-                  [0,0.1]])
+    D = np.array([[0.01,0],
+                  [0,0.01]])
     m_d = np.array([0,0])
     v_d = np.array([0,0])
     
@@ -200,7 +201,7 @@ def runNeuralNetwork(dataset, coefficients, Ms, Vs):
             N = 0
             #N = (batch_mat.sum(1)).mean()
             #batch_mat1 = batch_mat/N
-            batch_mat1 = fNN.tfidf(batch_mat)
+            batch_mat1 = fNN.tfidf2(batch_mat)
             batch_dictDF = pd.DataFrame(batch_dict)
             m = [batch_dictDF.loc['mp'],batch_dictDF.loc['mn'], Ms]
             v = [batch_dictDF.loc['vp'],batch_dictDF.loc['vn'], Vs]
@@ -211,14 +212,16 @@ def runNeuralNetwork(dataset, coefficients, Ms, Vs):
             dictionary.update(d)
             end2 = time.time()
     return loss, coefficients
-dictionary = fd.loadFile(drive+'dictionary_final.pckl')
+time.sleep(15000)
+dictionary = fd.loadFile(drive+'dictionary_filtered.pckl')
 dictionary = fNN.initializeX(dictionary)
 #dictionary = fd.loadFile(drive+'dictionary_regressionNN.pckl')
+n_docs = 276880
 
 coefficients, Ms, Vs = initializeCoefficients()
 batch_size, epochs = setHyperparameters()
 loss = []
-for year in range(2000,2006):
+for year in range(2000,2007):
     start = time.time()
     dataset = fd.loadFile(drive+str(year)+'10X_final.pckl')
     rd.shuffle(dataset)

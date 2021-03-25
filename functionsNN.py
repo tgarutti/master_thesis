@@ -22,8 +22,8 @@ def newEpoch():
 
 def initializeX(dictionary):
     for key in dictionary.keys():
-        dictionary[key]['pos'] = rd.randint(-50, 50)/100
-        dictionary[key]['neg'] = rd.randint(-50, 50)/100
+        dictionary[key]['pos'] = rd.randint(-25, 25)/100
+        dictionary[key]['neg'] = rd.randint(-25, 25)/100
     return dictionary
 
 def crossEntropyLoss(y, y_hat):
@@ -44,6 +44,12 @@ def tfidf(A):
     A[A==-np.inf] = 0
     A = A.T/rows
     return A.T
+
+def tfidf2(A):
+    A[A==-np.inf] = 0
+    rows = 1+np.log(A.mean(1))
+    A = A.T/rows
+    return A.T/euclideanNorm(A.T)
 
 def nextBatch(dataset, index, batch_size, stop):
     if len(dataset) -index - batch_size < batch_size:

@@ -2,11 +2,13 @@
 ##### Functions for reading and parsing a 10X file ###########################
 ##############################################################################
 import numpy as np
+import pandas as pd
 import re           
 import datetime
 import string
 import collections
 import nltk
+from nltk.corpus import stopwords
 import random as rd
 import functionsData as fd
 from collections import defaultdict
@@ -202,19 +204,37 @@ def countNumbers(inputString):
 
 def checkDictionary(dictionary):
     nltk.download('words')
+    nltk.download('stopwords')
     words = set(nltk.corpus.words.words())
+    sw = set(stopwords.words('english'))
     delKeys = [key for key in dictionary.keys() if key not in words]
+    for key in delKeys: 
+        del dictionary[key]
+    delKeys = [key for key in dictionary.keys() if key in sw]
     for key in delKeys: 
         del dictionary[key]
     return dictionary
 
+def weightsDict(dictionary):
+    NDOCS = 276880
+    df = pd.DataFrame(dictionary)
+    w1 = 1+np.log(df.loc['freq'])
+    w2 = 1+np.log(df.loc['freq'].mean())
+    w3 = np.log(NDOCS/df.loc['ndocs'])
+    weights = (w1/w2)*w3
+    return weights.sort_values()
+
 def checkFrequency(dictionary):
-    delKeys = [key for key in dictionary.keys() if dictionary[key]['freq'] < 200]
+    delKeys1 = [key for key in dictionary.keys() if dictionary[key]['freq'] < 100]
+    delKeys2 = [key for key in dictionary.keys() if dictionary[key]['ndocs'] < 15000]
+    delKeys3 = [key for key in dictionary.keys() if dictionary[key]['ndocs'] > 250000]
+    delKeys = delKeys1+delKeys2+delKeys3
     for key in delKeys: 
         del dictionary[key]
-    for key in dictionary.keys():
-        del dictionary[key]['freq']
     return dictionary
+
+
+    
 
 # constructDictionary - create dictionary
 def returnDictionary(dictionary, filename):
@@ -233,8 +253,10 @@ def returnDictionary(dictionary, filename):
                 dictionary[key]['mn'] = 0
                 dictionary[key]['vn'] = 0
                 dictionary[key]['freq'] = value
+                dictionary[key]['ndocs'] = 1
             else:
                 dictionary[key]['freq'] = dictionary[key]['freq'] + value
+                dictionary[key]['ndocs'] += 1
     return dictionary, CIKs
 ##############################################################################
 ##############################################################################

@@ -151,9 +151,9 @@ def runNeuralNetwork(dataset, W, m_coef, v_coef):
         while stop == False:
             batch, i, stop = fNN.nextBatch(dataset, i, batch_size, stop)
             batch_dict, batch_mat = batchDictionary(batch)
-            #euclid = fNN.euclideanNorm(batch_mat)
-            #batch_mat1 = batch_mat/euclid
-            batch_mat1 = fNN.tfidf(batch_mat)
+            euclid = fNN.euclideanNorm(batch_mat)
+            batch_mat1 = batch_mat/euclid
+            #batch_mat1 = fNN.tfidf(batch_mat)
             
             N = 0
             #N = (batch_mat.sum(1)).mean()
@@ -168,14 +168,14 @@ def runNeuralNetwork(dataset, W, m_coef, v_coef):
             dictionary.update(d)
             end2 = time.time()
     return loss, W
-dictionary = fd.loadFile(drive+'dictionary_final.pckl')
-dictionary = fNN.initializeX(dictionary)
-#dictionary = fd.loadFile(drive+'dictionary_benchNN.pckl')
+#dictionary = fd.loadFile(drive+'dictionary_final.pckl')
+#dictionary = fNN.initializeX(dictionary)
+dictionary = fd.loadFile(drive+'dictionary_benchNN.pckl')
 
 W, m_coef, v_coef = initializeCoefficients()
 batch_size, epochs = setHyperparameters()
 loss = []
-for year in range(2000,2006):
+for year in range(2004,2008):
     start = time.time()
     dataset = fd.loadFile(drive+str(year)+'10X_final.pckl')
     rd.shuffle(dataset)
