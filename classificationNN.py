@@ -234,7 +234,7 @@ n_docs = 276880
 coefficients, Ms, Vs = initializeCoefficients()
 batch_size, epochs = setHyperparameters()
 loss = []
-for year in range(2003,2008):
+for year in range(2001,2007):
     start = time.time()
     dataset = fd.loadFile(drive+str(year)+'10X_final.pckl')
     rd.shuffle(dataset)

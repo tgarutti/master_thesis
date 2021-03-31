@@ -10,6 +10,7 @@ import functionsNN as fNN
 import random as rd
 import collections
 import time
+from numpy.linalg import norm
 
 def percentileDict(dictionary, percentile):
     sort = fNN.getSortedScores(dictionary)
@@ -20,8 +21,6 @@ def percentileDict(dictionary, percentile):
 def filterDicts(loughranDict, dictionaries, percentile):
     for i in range(len(dictionaries)):
         dictionaries[i] = percentileDict(dictionaries[i], percentile)
-    Ldf = pd.DataFrame(loughranDict)
-    loughranDict = (Ldf.loc['Positive']-Ldf.loc['Negative']).to_dict()
     dictionaries.insert(0, loughranDict)
     return dictionaries
 
@@ -73,3 +72,17 @@ def getScores(filename, dictionaries, dict_names):
                 x = np.array(x1+x2+y)
                 data[d_name].append(x)
     return data
+
+def normalizeX(X):
+    n = []
+    for i in range(len(X[0,:])):
+        n.append(norm(X[:,i]))
+    n = np.array(n)
+    n[0:6]=1
+    return X/n
+
+def cleanMat(mat):
+    mat[mat==-np.inf] = 0
+    mat[mat==np.inf] = 0
+    mat[np.isnan(mat)] = 0
+    return mat

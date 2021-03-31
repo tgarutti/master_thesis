@@ -11,6 +11,8 @@ import functionsSVM as fSVM
 import random as rd
 import collections
 import time
+from sklearn.svm import SVC
+
 drive = '/Volumes/LaCie/Data/'
 
 loughranDict = fd.loadFile(drive+'Loughran_McDonald_dict.pckl')
@@ -39,8 +41,36 @@ def SVMDataset(dictionaries, dict_names):
         X = fSVM.getScores(filename, dictionaries, dict_names)
         for d in dict_names:
             test[d].extend(X[d])
+    for name in dict_names:
+        train[name] = np.row_stack(train[name])
+        test[name] = np.row_stack(test[name])
     return train, test
+train = fd.loadFile(drive+'train.pckl')
+test = fd.loadFile( drive+'test.pckl')
+
+def runSVM(train, test, kernel, dict_names, y):
+    results = dict()
+    for name in dict_names:
+        results[name] = []
+    for name in dict_names:
+        X_train = train[name][:,0:11]
+        X_train = fSVM.cleanMat(X_train)
+        X_train = fSVM.normalizeX(X_train)
+        y_train = train[name][:,11:]
+        y_train = y_train[:,y]
+        
+        X_test = test[name][:,0:11]
+        X_test = fSVM.cleanMat(X_test )
+        X_test = fSVM.normalizeX(X_test)
+        y_test = test[name][:,11:]
+        y_test = y_test[:,y]
+        
+        svclassifier = SVC(kernel=kernel)
+        svclassifier.fit(X_train, y_train)
+        y_pred = svclassifier.predict(X_test)
+        
+        results[name].append(y_pred, y_test)
 start = time.time()
-train, test = SVMDataset(dictionaries, dict_names)
+y_results = runSVM(train, test, 'rbf', dict_names, 0)
 end = time.time()
 print(end-start)
