@@ -47,8 +47,9 @@ def getOmega(text, dictionary):
         values = np.array(values)
         n_pos = nPos(values)
         n_neg = nNeg(values)
-        score = int(sum(values))
-        return [len_text, n_sentWords, n_pos, n_neg, score]
+        score1 = int(sum(values))
+        #scorw2 
+        return [len_text, n_sentWords, n_pos, n_neg, score1]
 
 def getScores(filename, dictionaries, dict_names):
     dataset = fd.loadFile(filename)
@@ -56,14 +57,15 @@ def getScores(filename, dictionaries, dict_names):
     for d in dict_names:
         data[d] = []
     for item in dataset:
-        if item[6][0] >=0:
-            y = [item[4][0],item[5],item[6][0],1]
-        else:
-            y = [item[4][0],item[5],item[6][0],0]
         x1 = np.concatenate(np.row_stack(item[7])[:,0:2]).tolist()
         n = 6-len(x1)
         for i in range(n):
             x1.insert(0, 0)
+        if (item[6][0]-x1[4])/x1[4] >=0:
+            y = [item[4][0],item[5],item[6][0],1]
+        else:
+            y = [item[4][0],item[5],item[6][0],0]
+
         for i in range(len(dictionaries)):
             d = dictionaries[i]
             d_name = dict_names[i]
@@ -79,7 +81,9 @@ def normalizeX(X):
         n.append(norm(X[:,i]))
     n = np.array(n)
     n[0:6]=1
-    return X/n
+    Xnew = X
+    Xnew[:,6:] = X[:,6:]//100
+    return Xnew
 
 def cleanMat(mat):
     mat[mat==-np.inf] = 0
