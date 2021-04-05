@@ -61,18 +61,19 @@ def getScores(filename, dictionaries, dict_names):
         n = 6-len(x1)
         for i in range(n):
             x1.insert(0, 0)
-        if (item[6][0]-x1[4])/x1[4] >=0:
-            y = [item[4][0],item[5],item[6][0],1]
-        else:
-            y = [item[4][0],item[5],item[6][0],0]
-
-        for i in range(len(dictionaries)):
-            d = dictionaries[i]
-            d_name = dict_names[i]
-            x2 = getOmega(item[-1], d)
-            if len(x2) > 0:
-                x = np.array(x1+x2+y)
-                data[d_name].append(x)
+        if x1[5] != 0:
+            if (item[6][0]-x1[5])/x1[5] >=0:
+                y = [item[4][0],item[5],item[6][0],1]
+            else:
+                y = [item[4][0],item[5],item[6][0],0]
+    
+            for i in range(len(dictionaries)):
+                d = dictionaries[i]
+                d_name = dict_names[i]
+                x2 = getOmega(item[-1], d)
+                if len(x2) > 0:
+                    x = np.array(x1+x2+y)
+                    data[d_name].append(x)
     return data
 
 def normalizeX(X):

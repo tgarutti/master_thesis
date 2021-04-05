@@ -112,3 +112,35 @@ def incrementQuarter(date, increment):
             yr = yr-1
             qrt = 4
     return str(yr) + " Q" + str(qrt)
+
+def cleanMatNP(mat):
+    mat[mat==-np.inf] = 0
+    mat[mat==np.inf] = 0
+    mat[np.isnan(mat)] = 0
+    return mat
+
+def cleanMatPD(mat):
+    mat[mat==-np.inf] = 0
+    mat[mat==np.inf] = 0
+    mat[pd.isnull(mat)] = 0
+    return mat
+
+def calculateDescriptives(vec):
+    mean = np.mean(vec)
+    median = np.median(vec)
+    std = np.std(vec)
+    ma = np.max(vec)
+    mi = np.min(vec)
+    return [mean, median, std, ma, mi]
+    
+    
+
+def numericalDescriptives():
+    drive = "/Volumes/LaCie/Data/"
+    prices = loadFile(drive+'prices.pckl')
+    vol = loadFile(drive+'volatilities.pckl')
+    prices=np.array(prices)
+    CIKs = np.unique(prices[:,2])
+    prices = prices[prices[:,0].argsort()]
+    vol = np.array(vol)
+    vol = vol[vol[:,0].argsort()]

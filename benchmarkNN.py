@@ -175,7 +175,7 @@ dictionary = fd.loadFile(drive+'dictionary_benchNN.pckl')
 W, m_coef, v_coef = initializeCoefficients()
 batch_size, epochs = setHyperparameters()
 loss = []
-for year in range(2008,2013):
+for year in range(2013,2015):
     start = time.time()
     dataset = fd.loadFile(drive+str(year)+'10X_final.pckl')
     rd.shuffle(dataset)
