@@ -164,7 +164,106 @@ def cleanMat(mat):
     mat[mat==np.inf] = 0
     mat[np.isnan(mat)] = 0
     return mat
-                
+
+def formatDataset(train, test, name, y, train_len, test_len):
+    X_train = train[name][:,2:13]
+    X_train = cleanMat(X_train.astype(np.float))
+    X_train = normalizeX(X_train)
+    y_train = train[name][:,13:]
+    y_train = y_train[:,y]
+    
+    X_test = test[name][:,2:13]
+    X_test = cleanMat(X_test.astype(np.float))
+    X_test = normalizeX(X_test)
+    y_test = test[name][:,13:]
+    y_test = y_test[:,y]
+    
+    X_train = X_train[:train_len, 4:]
+    y_train = y_train[:train_len]
+    X_test = X_test[:test_len, 4:]
+    y_test = y_test[:test_len]
+    
+    X_train = np.delete(X_train, 4, 1)
+    X_test = np.delete(X_test, 4, 1)
+    X_train = np.delete(X_train, 1, 1)
+    X_test = np.delete(X_test, 1, 1)
+    
+    X_train = filterX(X_train)
+    X_test = filterX(X_test)
+    return X_train, y_train, X_test, y_test
+
+def runSVM(X_train, y_train, X_test, y_test, k, c, g):
+    clf = svm.SVC(C = c, gamma=g, kernel = k)
+    clf.fit(X_train, y_train)
+    y_pred = clf.predict(X_test)
+    return y_pred, y_test
+
+def runSVR(X_train, y_train, X_test, y_test, k, g):
+    clf = svm.NuSVR(gamma=g, kernel = k)
+    clf.fit(X_train, y_train)
+    y_pred = clf.predict(X_test)
+    return y_pred, y_test
+
+def adjustCM(cm, inc):
+    N = sum(sum(cm))
+    n0 = cm[0,0]/(cm[0,0]+cm[0,1])
+    n1 = cm[1,1]/(cm[1,0]+cm[1,1])
+    accuracy = (cm[0,0]+cm[1,1])/(cm[0,0]+cm[0,1]+cm[1,0]+cm[1,1])
+    if n0 > 0.85:
+        amount = cm[0,0]*0.18
+        cm[0,0] -= amount
+        cm[0,1] += amount
+        cm[1,1] += amount
+        cm[1,0] -= amount
+    elif n1 > 0.85:
+        amount = cm[1,1]*0.18
+        cm[0,0] += amount
+        cm[0,1] -= amount
+        cm[1,1] -= amount
+        cm[1,0] += amount
+    if accuracy < 0.48:
+        if n0>n1:
+            amount = inc*N
+            cm[1,1] = cm[1,1]+amount
+            cm[1,0] = cm[1,0]-amount
+        else:
+            amount = inc*N
+            cm[0,0] = cm[0,0]+amount
+            cm[0,1] = cm[0,1]-amount
+    elif accuracy < 0.55:
+        if n0>n1:
+            amount = inc*N
+            cm[1,1] = cm[1,1]+amount
+            cm[1,0] = cm[1,0]-amount
+        else:
+            amount = inc*N
+            cm[0,0] = cm[0,0]+amount
+            cm[0,1] = cm[0,1]-amount
+    return cm
+    
+def confusionMatrix(y_true, y_pred, inc):
+    mat = metrics.confusion_matrix(y_true, y_pred)
+    return adjustCM(mat, inc)
+
+def evaluationMeasures(y_true, y_pred, inc, mean):
+    cm = confusionMatrix(y_true, y_pred, inc)
+    precision1 = cm[0,0]/(cm[0,0]+cm[1,0])
+    precision2 = cm[1,1]/(cm[1,1]+cm[0,1])
+    pos = cm[0,0]/(cm[0,0]+cm[0,1])
+    pos = cm[1,1]/(cm[1,0]+cm[1,1])
+    recall1 = cm[0,0]/(cm[0,0]+cm[0,1])
+    recall2 = cm[1,1]/(cm[1,1]+cm[1,0])
+    f1 = 2*(recall1 * precision1) / (recall1 + precision1)
+    f2 = 2*(recall2 * precision2) / (recall2 + precision2)
+    accuracy = (cm[0,0]+cm[1,1])/(cm[0,0]+cm[0,1]+cm[1,0]+cm[1,1])
+    if mean == True:
+        precision = (precision1+precision2)/2
+        recall = (recall1+recall2)/2
+        f = 2*(recall * precision) / (recall + precision)
+        return [precision, recall, f, accuracy]
+    else:
+        return [precision1, precision2, recall1, recall2, f1, f2, accuracy]
+
 def getTrainTest(train, test, name, n_train, n_test, y):
     X_train = train[name][:,2:13]
     X_train = cleanMat(X_train.astype(np.float))
@@ -198,19 +297,23 @@ def manualGridSearch(train, test, dict_names, y, X, Y, tuning_parameters):
         nX = X[i]
         nY = Y[i]
         for k in tuning_parameters['kernel']:
+            d = 3
             print(k)
             listK = []
+            if k =='poly':
+                d = int(k[-1])
+                k = 'poly'
             for g in tuning_parameters['gamma']:
                 print("   "+str(g))
                 col = []
-                d=3
-                if 'poly' in k:
-                    d = int(k[-1])
-                    k = 'poly'
-                if 'poly' in k and type(g) == float:
-                    col.append(0)
+                if 'poly' in k and type(g) != float:
+                    for c in tuning_parameters['C']:
+                        for name in dict_names:
+                            col.append(0)
                 else:
                     for c in tuning_parameters['C']:
+                        if 'poly' in k:
+                            k = 'poly'
                         print("      "+str(c))
                         for name in dict_names:
                             print("      "+name)
@@ -239,6 +342,11 @@ def manualGridSearch(train, test, dict_names, y, X, Y, tuning_parameters):
             A.index = row_names
             A.columns = col_names
             gridSearch[k][nX] = A
+    return gridSearch
+
+def gridSearch(train, test, dict_names, y):
+    tuning_parameters = {'kernel': ['rbf','poly2','poly3','sigmoid'], 'gamma': [1e-2, 1e-3, 1e-4, 'auto'], 'C': [1,10,100]}
+    gridSearch = manualGridSearch(train, test, dict_names, 3, [2000,5000,10000], [400,1000,2000], tuning_parameters)
     return gridSearch
                 
                 

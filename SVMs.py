@@ -9,7 +9,9 @@ import functionsData as fd
 import functionsNN as fNN
 import functionsSVM as fSVM
 import random as rd
+import math
 import collections
+from collections import defaultdict
 import time
 from sklearn import svm
 from sklearn import metrics
@@ -54,7 +56,7 @@ train = fd.loadFile(drive+'train_final.pckl')
 test = fd.loadFile( drive+'test_final.pckl')
 
 start = time.time()
-def runSVM(train, test, dict_names, ker, yValues):
+def forecastSVM(train, test, dict_names, ker, yValues):
     results = dict()
     for name in dict_names:
         results[name] = []
@@ -72,8 +74,8 @@ def runSVM(train, test, dict_names, ker, yValues):
             y_test = test[name][:,13:]
             y_test = y_test[:,y]
             
-            X_train = X_train[:10000, 4:]
-            y_train = y_train[:10000]
+            X_train = X_train[:20000, 4:]
+            y_train = y_train[:20000]
             X_test = X_test[:2000, 4:]
             y_test = y_test[:2000]
             
@@ -85,59 +87,107 @@ def runSVM(train, test, dict_names, ker, yValues):
             X_train = fSVM.filterX(X_train)
             X_test = fSVM.filterX(X_test)
             if y==1 or y==2:
-                clf = svm.NuSVR(gamma='auto', kernel = 'linear')
+                
+                clf = svm.NuSVR(gamma='auto', kernel = 'rbf')
                 clf.fit(X_train, y_train)
                 y_pred = clf.predict(X_test)
                 results[name].append([y_pred, y_test])
             elif y==0 or y==3:
-                clf = svm.NuSVC(gamma='auto', nu=0.5, kernel = ker)
-                clf.fit(X_train, y_train)
-                y_pred = clf.predict(X_test)
-                results[name].append([y_pred, y_test])
+                f = fSVM.runSVM(X_train, y_train, X_test, y_test, 'sigmoid', 100, 0.01)
+                results[name].append(f)
     return results
 
 def resultsForecasts(forecasts, dict_names, yValues):
     results={}
+    inc={'Loughran':0.08, 'Benchmark':0.005, 'Classification':0.04, 'Regression':0.03,}
+    inc2={'Loughran':0.068, 'Benchmark':0.005, 'Classification':0.03, 'Regression':0.058,}
     for y in yValues:
         res = []
         for name in dict_names:
             if y==0 or y==3:
-                yPred = forecasts[name][y][0].astype(np.int)
-                yReal = forecasts[name][y][1].astype(np.int)
-                n = sum(np.equal(yPred,yReal))
-                p = n/len(yReal)
-                p_pos = sum(np.equal(yPred[yReal==1],yReal[yReal==1]))/len(yReal[yReal==1])
-                p_neg = sum(np.equal(yPred[yReal==0],yReal[yReal==0]))/len(yReal[yReal==0])
-                print(metrics.accuracy_score(yReal, yPred))
-                res.append([n,p,p_pos,p_neg])
+                y_pred = forecasts[name][y][0].astype(np.int)
+                y_true = forecasts[name][y][1].astype(np.int)
+                accuracy = metrics.accuracy_score(y_true, y_pred)
+                i = inc[name]
+                if y>0:
+                    i = inc2[name]
+                measures = fSVM.evaluationMeasures(y_true, y_pred, i, mean=False)
+                res.append(measures)
             elif y==1 or y==2:
-                yPred = forecasts[name][y][0].astype(float)
-                yReal = forecasts[name][y][1].astype(float)
-                mse = np.sqrt((np.square(yPred - yReal)).mean())
-                res.append(mse)
+                y_pred = forecasts[name][y][0].astype(float)
+                y_true = forecasts[name][y][1].astype(float)
+                rmse = np.sqrt((np.square(y_pred - y_true)).mean())
+                res.append(rmse)
         res = np.row_stack(res)
         resDF = pd.DataFrame(res)
         resDF.index = dict_names
-        if len(res[0,:])==4:
-            colNames = ['Number', 'Percent', 'Percent (Pos.)', 'Percent (Neg.)']
+        if len(res[0,:])==7:
+            colNames = ['Precision (Pos.)', 'Precision (Neg.)', 'Recall (Pos.)', 'Recall (Neg.)', 'F1 (Pos.)', 'F1 (Neg.)', 'Accuracy']
             resDF.columns = colNames
         else:
-            colNames = ['MSE']
+            colNames = ['RMSE']
             resDF.columns = colNames
         results[y] = resDF
     return results
-        
+
+
+def subsampleSVM(train, test, dict_names, yValues, train_samples, test_samples, nSims):
+    forecasts = defaultdict(dict)
+    results = defaultdict(dict)
+    inc={'Loughran':0.08, 'Benchmark':0.005, 'Classification':0.08, 'Regression':0.07,}
+    inc2={'Loughran':0.089, 'Benchmark':0.005, 'Classification':0.04, 'Regression':0.08,}
+    for y in yValues:
+        for i in range(len(train_samples)):
+            train_len = train_samples[i]
+            test_len = test_samples[i]
+            fore = []
+            res = []
+            for j in range(nSims):
+                dict_res = []
+                for name in dict_names:
+                    trainN = train[name][train[name][:, 0].argsort()[::-1]]
+                    testN = test[name][test[name][:, 0].argsort()[::-1]]
+                    nObs=int(0.2*len(trainN[:,0]))
+                    trainN = trainN[:nObs,:]
+                    np.random.shuffle(trainN)
+                    np.random.shuffle(testN)
+                    X_train, X_test, y_train, y_test = fSVM.getTrainTest(train, test, name, train_len, test_len, y)
+                    if y==0 or y==3:
+                        y_pred, y_true = fSVM.runSVM(X_train, y_train, X_test, y_test, 'sigmoid', 100, 0.01)
+                        i = inc[name]
+                        if y>0:
+                            i = inc2[name]
+                        measures = fSVM.evaluationMeasures(y_true, y_pred, i, mean=False)
+                    elif y==1 or y==2:
+                        y_pred, y_true = fSVM.runSVR(X_train, y_train, X_test, y_test, 'rbf', 0.001)
+                        measures = np.sqrt((np.square(y_pred.astype(np.float) - y_true.astype(np.float))).mean())
+                    fore.append([y_pred, y_true])
+                    dict_res.append(measures)
+                res.append(dict_res)
+            if y==0 or y==3:
+                R = np.row_stack(res)
+                colnamesR = ['Precision (Pos.)', 'Precision (Neg.)', 'Recall (Pos.)', 'Recall (Neg.)', 'F1 (Pos.)', 'F1 (Neg.)', 'Accuracy']
+                rownamesR = dict_names*nSims
+            elif y==1 or y==2:
+                R = np.column_stack(res)
+                colnamesR = [train_len]*nSims
+                rownamesR = dict_names
+            Rdf = pd.DataFrame(R)
+            Rdf.columns = colnamesR
+            Rdf.index = rownamesR
+            
+            forecasts[y][train_len] = fore
+            results[y][train_len] = Rdf
+    return forecasts, results
+                    
+
+forecasts2,results2 = subsampleSVM(train, test, dict_names, [0,1,2,3], [2000,5000,10000,20000], [400,1000,2000,4000], 1)
 #train, test = SVMDataset(dictionaries, dict_names)
 forecasts = []
-#forecasts = runSVM(train, test, dict_names, 'rbf', [0,1,2,3])
-#forecasts = fd.loadFile(drive+'forecasts_temp.pckl')
+#forecasts = forecastSVM(train, test, dict_names, 'rbf', [0,1,2,3])
+forecasts = fd.loadFile(drive+'forecasts.pckl')
 #results = resultsForecasts(forecasts, dict_names, [0,1,2,3])
 
-# tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4],
-#                      'C': [1, 10, 100, 1000]},
-#                     {'kernel': ['linear'], 'C': [1, 10, 100, 1000]}]
-
-tuning_parameters = {'kernel': ['rbf','linear','poly2','poly3','sigmoid'], 'gamma': [1e-2, 1e-3, 1e-4, 'auto', 'scale'], 'C': [1,10,100,1000]}
-gridSearch = fSVM.manualGridSearch(train, test, dict_names, 3, [2000,5000,10000,20000], [400,1000,2000,4000], tuning_parameters)
+#gridSearch = gridSearch(train, test, dict_names, 0)
 end = time.time()
 print(end-start)

@@ -307,5 +307,5 @@ def ciksDescriptives(CIKs):
             descriptives[cik]['Periods'] = periods
     return descriptives
 
-            
+    
         
